@@ -5,6 +5,7 @@
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
+    "start:simple": "node simple-server.js",
     "dev": "nodemon src/app.js",
     "test": "jest",
     "seed": "node src/seedDatabase.js"

@@ -4,7 +4,8 @@ let client = null;
 
 async function connectRedis() {
   try {
-    if (process.env.REDIS_URL) {
+    // Temporary: Skip Redis connection to avoid deployment issues
+    if (false && process.env.REDIS_URL) {
       // Connect to Render Redis
       const redisUrl = process.env.REDIS_URL;
       const isExternalUrl = redisUrl.includes('oregon-keyvalue.render.com');

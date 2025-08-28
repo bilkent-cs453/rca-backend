@@ -9,13 +9,26 @@ async function connectRedis() {
       const redisUrl = process.env.REDIS_URL;
       const isExternalUrl = redisUrl.includes('oregon-keyvalue.render.com');
       
-      client = redis.createClient({
-        url: redisUrl,
-        socket: isExternalUrl ? {
+      console.log(`Connecting to Redis: ${redisUrl} (External: ${isExternalUrl})`);
+      
+      const config = {
+        url: redisUrl
+      };
+      
+      // Only add TLS config for external URLs
+      if (isExternalUrl) {
+        config.socket = {
           tls: true,
           rejectUnauthorized: false
-        } : undefined
-      });
+        };
+      } else {
+        // Explicitly disable TLS for internal connections
+        config.socket = {
+          tls: false
+        };
+      }
+      
+      client = redis.createClient(config);
       
       client.on('error', (err) => console.error('Redis Client Error:', err));
       client.on('connect', () => console.log('✅ Connected to Render Redis'));

@@ -1,15 +1,22 @@
 const express = require('express');
 const WebSocket = require('ws');
 const { getClient } = require('../config/redis');
+const monitoring = require('../config/monitoring');
 const router = express.Router();
 
 // Store active chaos scenarios
 const activeChaos = new Map();
 
-// Middleware to log chaos events
+// Middleware to log chaos events with proper monitoring
 function logChaosEvent(type, details) {
   console.log(`🔥 CHAOS: ${type} - ${details}`);
-  // In production, this would also log to monitoring system
+  
+  // Send to monitoring system (Sentry)
+  monitoring.trackChaosEvent(type, {
+    details,
+    timestamp: new Date().toISOString(),
+    activeScenarios: activeChaos.size
+  });
 }
 
 // 1. Memory Leak Trigger - WebSocket connections that don't close
@@ -248,6 +255,71 @@ router.post('/stop-all', (req, res) => {
     message: 'All chaos scenarios stopped',
     memoryUsage: process.memoryUsage()
   });
+});
+
+// 7. Test Alert Endpoints - For demonstrating monitoring
+router.post('/test-alerts/memory', (req, res) => {
+  monitoring.triggerTestAlert('memory');
+  
+  res.json({
+    success: true,
+    message: 'Memory alert test triggered - check Sentry dashboard'
+  });
+});
+
+router.post('/test-alerts/performance', (req, res) => {
+  monitoring.triggerTestAlert('performance');
+  
+  res.json({
+    success: true,
+    message: 'Performance alert test triggered - check Sentry dashboard'
+  });
+});
+
+router.post('/test-alerts/database', (req, res) => {
+  monitoring.triggerTestAlert('connection');
+  
+  res.json({
+    success: true,
+    message: 'Database connection alert test triggered - check Sentry dashboard'
+  });
+});
+
+// 8. Force memory threshold alerts for testing
+router.post('/trigger-memory-alert', async (req, res) => {
+  try {
+    // Allocate memory to trigger real alerts
+    const memoryHogs = [];
+    let totalAllocated = 0;
+    
+    // Allocate memory in chunks until we hit the warning threshold
+    while (totalAllocated < 200) { // 200MB
+      const buffer = Buffer.alloc(10 * 1024 * 1024); // 10MB chunks
+      memoryHogs.push(buffer);
+      totalAllocated += 10;
+    }
+    
+    // Force a memory check
+    setTimeout(() => {
+      monitoring.checkMemoryUsage();
+    }, 1000);
+    
+    // Clean up after 30 seconds
+    setTimeout(() => {
+      memoryHogs.length = 0;
+      if (global.gc) global.gc();
+      logChaosEvent('MEMORY_ALERT_TEST', 'Memory cleaned up after test');
+    }, 30000);
+    
+    res.json({
+      success: true,
+      message: `Allocated ${totalAllocated}MB to trigger memory alerts`,
+      memoryUsage: process.memoryUsage()
+    });
+    
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 module.exports = router;

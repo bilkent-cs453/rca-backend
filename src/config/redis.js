@@ -6,12 +6,15 @@ async function connectRedis() {
   try {
     if (process.env.REDIS_URL) {
       // Connect to Render Redis
+      const redisUrl = process.env.REDIS_URL;
+      const isExternalUrl = redisUrl.includes('oregon-keyvalue.render.com');
+      
       client = redis.createClient({
-        url: process.env.REDIS_URL,
-        socket: {
+        url: redisUrl,
+        socket: isExternalUrl ? {
           tls: true,
           rejectUnauthorized: false
-        }
+        } : undefined
       });
       
       client.on('error', (err) => console.error('Redis Client Error:', err));

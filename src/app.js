@@ -68,7 +68,8 @@ async function startServer() {
   try {
     // Connect to databases
     await connectDatabase();
-    await connectRedis();
+    // Temporarily disabled Redis connection
+    // await connectRedis();
     
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);

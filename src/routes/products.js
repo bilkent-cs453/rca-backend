@@ -86,6 +86,74 @@ const mockProducts = [
   }
 ];
 
+// Global cache for recommendations - MEMORY LEAK: Never cleaned up
+const recommendationCache = new Map();
+const userSessionData = new Map();
+
+// Helper function that looks like optimization but causes memory leak
+function cacheRecommendationData(userId, productId, data) {
+  const key = `${userId}-${productId}-${Date.now()}`;
+  recommendationCache.set(key, {
+    data: data,
+    timestamp: new Date(),
+    // Store large metadata that looks useful but accumulates
+    metadata: {
+      userAgent: Math.random().toString(36).repeat(100),
+      sessionHistory: new Array(100).fill(productId),
+      computedScores: new Float64Array(10000), // 80KB per request
+    }
+  });
+  
+  // Also track user sessions (another leak)
+  if (!userSessionData.has(userId)) {
+    userSessionData.set(userId, []);
+  }
+  userSessionData.get(userId).push({
+    productId,
+    viewedAt: new Date(),
+    recommendations: data
+  });
+}
+
+// Get personalized recommendations - Contains memory leak when enabled
+router.get('/recommendations/:productId', async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const userId = req.headers['x-user-id'] || 'anonymous';
+    
+    // Find similar products
+    const baseProduct = mockProducts.find(p => p.id === parseInt(productId));
+    if (!baseProduct) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    // Get recommendations
+    const recommendations = mockProducts
+      .filter(p => p.category === baseProduct.category && p.id !== baseProduct.id)
+      .slice(0, 5);
+    
+    // Only cache if memory leak is enabled (looks like normal caching)
+    if (process.env.ENABLE_MEMORY_LEAK === 'true') {
+      cacheRecommendationData(userId, productId, recommendations);
+      
+      // Log cache size periodically (will show growing memory)
+      if (recommendationCache.size % 100 === 0) {
+        console.log(`Recommendation cache size: ${recommendationCache.size} entries`);
+      }
+    }
+    
+    res.json({
+      productId,
+      recommendations,
+      cached: recommendationCache.size,
+      sessionCount: userSessionData.size
+    });
+  } catch (error) {
+    console.error('Error getting recommendations:', error);
+    res.status(500).json({ error: 'Failed to get recommendations' });
+  }
+});
+
 // Override with mock data for demo
 router.get('/', (req, res) => {
   res.json({

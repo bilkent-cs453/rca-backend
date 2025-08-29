@@ -25,11 +25,12 @@
     "morgan": "^1.10.0",
     "pg": "^8.11.0",
     "redis": "^4.6.0",
-    "sequelize": "^6.32.0",
-    "ws": "^8.13.0"
+    "sequelize": "^6.32.0"
   },
   "devDependencies": {
+    "axios": "^1.11.0",
     "jest": "^29.5.0",
-    "nodemon": "^2.0.22"
+    "nodemon": "^2.0.22",
+    "ws": "^8.18.3"
   }
 }

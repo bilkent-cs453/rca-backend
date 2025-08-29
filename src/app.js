@@ -14,10 +14,6 @@ const authRoutes = require('./routes/auth');
 const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const userRoutes = require('./routes/users');
-
-// Debug routes - only enabled in development or with feature flag
-const debugEnabled = process.env.ENABLE_DEBUG === 'true' || process.env.NODE_ENV === 'development';
-const debugRoutes = debugEnabled ? require('./routes/debug') : null;
 const { initializeWebSocket } = require('./services/websocket');
 const { connectDatabase } = require('./config/database');
 const { connectRedis } = require('./config/redis');
@@ -40,12 +36,6 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
-
-// Debug endpoints only available when enabled
-if (debugRoutes) {
-  app.use('/api/debug', debugRoutes);
-  console.log('⚠️  Debug endpoints enabled at /api/debug');
-}
 
 // Health check
 app.get('/health', (req, res) => {

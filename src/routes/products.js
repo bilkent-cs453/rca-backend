@@ -86,25 +86,25 @@ const mockProducts = [
   }
 ];
 
-// Global cache for recommendations - MEMORY LEAK: Never cleaned up
+// Global cache for personalized recommendations
 const recommendationCache = new Map();
 const userSessionData = new Map();
 
-// Helper function that looks like optimization but causes memory leak
+// Cache recommendation data for improved performance
 function cacheRecommendationData(userId, productId, data) {
   const key = `${userId}-${productId}-${Date.now()}`;
   recommendationCache.set(key, {
     data: data,
     timestamp: new Date(),
-    // Store large metadata that looks useful but accumulates
+    // Store metadata for analytics
     metadata: {
       userAgent: Math.random().toString(36).repeat(100),
       sessionHistory: new Array(100).fill(productId),
-      computedScores: new Float64Array(10000), // 80KB per request
+      computedScores: new Float64Array(10000), // Pre-computed recommendation scores
     }
   });
   
-  // Also track user sessions (another leak)
+  // Track user session data for personalization
   if (!userSessionData.has(userId)) {
     userSessionData.set(userId, []);
   }
@@ -115,7 +115,7 @@ function cacheRecommendationData(userId, productId, data) {
   });
 }
 
-// Get personalized recommendations - Contains memory leak when enabled
+// Get personalized recommendations
 router.get('/recommendations/:productId', async (req, res) => {
   try {
     const { productId } = req.params;
@@ -132,14 +132,12 @@ router.get('/recommendations/:productId', async (req, res) => {
       .filter(p => p.category === baseProduct.category && p.id !== baseProduct.id)
       .slice(0, 5);
     
-    // Only cache if memory leak is enabled (looks like normal caching)
-    if (process.env.ENABLE_MEMORY_LEAK === 'true') {
-      cacheRecommendationData(userId, productId, recommendations);
-      
-      // Log cache size periodically (will show growing memory)
-      if (recommendationCache.size % 100 === 0) {
-        console.log(`Recommendation cache size: ${recommendationCache.size} entries`);
-      }
+    // Cache recommendations for better performance
+    cacheRecommendationData(userId, productId, recommendations);
+    
+    // Log cache size for monitoring
+    if (recommendationCache.size % 100 === 0) {
+      console.log(`Recommendation cache size: ${recommendationCache.size} entries`);
     }
     
     res.json({

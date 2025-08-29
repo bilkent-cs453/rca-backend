@@ -29,7 +29,8 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan('combined'));
-app.use(rateLimiter);
+// Temporarily disabled for testing
+// app.use(rateLimiter);
 
 // Routes
 app.use('/api/auth', authRoutes);

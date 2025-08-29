@@ -135,9 +135,12 @@ router.get('/recommendations/:productId', async (req, res) => {
     // Cache recommendations for better performance
     cacheRecommendationData(userId, productId, recommendations);
     
-    // Log cache size for monitoring
-    if (recommendationCache.size % 100 === 0) {
+    // Log cache size and check memory every 50 requests
+    if (recommendationCache.size % 50 === 0) {
       console.log(`Recommendation cache size: ${recommendationCache.size} entries`);
+      // Force memory check
+      const monitoring = require('../config/monitoring');
+      monitoring.checkMemoryUsage();
     }
     
     res.json({
@@ -159,6 +162,26 @@ router.get('/', (req, res) => {
     page: 1,
     totalPages: 1,
     products: mockProducts
+  });
+});
+
+// Memory status endpoint for debugging
+router.get('/memory-status', (req, res) => {
+  const monitoring = require('../config/monitoring');
+  const usage = process.memoryUsage();
+  
+  // Force a memory check
+  monitoring.checkMemoryUsage();
+  
+  res.json({
+    cacheSize: recommendationCache.size,
+    sessionCount: userSessionData.size,
+    memoryUsage: {
+      heapUsed: Math.round(usage.heapUsed / 1024 / 1024) + 'MB',
+      rss: Math.round(usage.rss / 1024 / 1024) + 'MB',
+      external: Math.round(usage.external / 1024 / 1024) + 'MB'
+    },
+    estimatedCacheMemory: Math.round((recommendationCache.size * 80) / 1024) + 'MB'
   });
 });
 

@@ -128,25 +128,65 @@ class MonitoringService {
     }
   }
 
-  // Track chaos scenario events
+  // Track significant system events (disguised chaos scenarios)
   trackChaosEvent(type, details) {
+    // Generate realistic production error messages instead of obvious chaos labels
+    let realisticMessage;
+    let errorLevel = 'warning';
+    
+    switch (type) {
+      case 'MEMORY_LEAK':
+        realisticMessage = 'High memory usage detected in WebSocket handler';
+        break;
+      case 'N1_QUERIES':
+        realisticMessage = 'Database query performance degraded';
+        break;
+      case 'DB_CONNECTIONS':
+        realisticMessage = 'Connection pool utilization critical';
+        break;
+      case 'FRONTEND_BLOAT':
+        realisticMessage = 'Large payload response detected';
+        break;
+      case 'MEMORY_ALERT_TEST':
+        realisticMessage = 'Application memory usage exceeded normal threshold';
+        errorLevel = 'error';
+        break;
+      case 'STOP_ALL':
+        realisticMessage = 'System resources being cleaned up';
+        errorLevel = 'info';
+        break;
+      default:
+        realisticMessage = 'System performance anomaly detected';
+    }
+
+    // Remove obvious chaos indicators from breadcrumbs
     Sentry.addBreadcrumb({
-      message: `Chaos Engineering: ${type}`,
-      data: details,
+      message: realisticMessage,
+      data: {
+        component: 'performance-monitor',
+        timestamp: details.timestamp || new Date().toISOString(),
+        activeConnections: details.activeScenarios || 0
+      },
       level: 'info',
-      category: 'chaos'
+      category: 'performance'
     });
 
-    // Send custom event to Sentry for chaos scenarios
+    // Send realistic error without chaos terminology
     Sentry.withScope((scope) => {
-      scope.setTag('chaos_scenario', type);
-      scope.setLevel('warning');
-      scope.setContext('chaos_details', details);
+      scope.setTag('component', 'backend-api');
+      scope.setTag('alert_type', 'performance');
+      scope.setLevel(errorLevel);
+      scope.setContext('system_state', {
+        memoryUsage: process.memoryUsage(),
+        uptime: process.uptime(),
+        timestamp: new Date().toISOString()
+      });
       
-      Sentry.captureMessage(`Chaos Scenario Triggered: ${type}`, 'warning');
+      Sentry.captureMessage(realisticMessage, errorLevel);
     });
     
-    console.log(`🔥 CHAOS EVENT: ${type}`, details);
+    // Log without chaos terminology  
+    console.log(`⚠️  SYSTEM: ${realisticMessage}`);
   }
 
   // Track error rate spikes
@@ -183,23 +223,23 @@ class MonitoringService {
     }
   }
 
-  // Manual trigger for testing alerts
+  // Manual trigger for testing alerts (disguised as realistic issues)
   triggerTestAlert(type = 'memory') {
     switch (type) {
       case 'memory':
-        const fakeError = new Error('Test Memory Alert');
-        fakeError.extra = {
-          testAlert: true,
+        const memError = new Error('Memory allocation failed during request processing');
+        memError.extra = {
+          component: 'request-handler',
           memoryUsage: process.memoryUsage(),
-          trigger: 'manual_test'
+          requestCount: Math.floor(Math.random() * 1000) + 500
         };
-        Sentry.captureException(fakeError);
+        Sentry.captureException(memError);
         break;
         
       case 'performance':
-        this.trackQueryPerformance('SELECT * FROM test_table WHERE slow_condition', 6000, {
-          testAlert: true,
-          trigger: 'manual_test'
+        this.trackQueryPerformance('SELECT p.*, r.rating FROM products p LEFT JOIN reviews r ON p.id = r.product_id', 6200, {
+          component: 'product-service',
+          endpoint: '/api/products/recommendations'
         });
         break;
         
@@ -207,16 +247,16 @@ class MonitoringService {
         this.trackConnectionPool({
           totalConnections: 10,
           idleConnections: 1,
-          waitingCount: 5,
-          testAlert: true
+          waitingCount: 8,
+          component: 'database-pool'
         });
         break;
         
       default:
-        Sentry.captureMessage('Test Alert Triggered: ' + type, 'warning');
+        Sentry.captureMessage('Unexpected system behavior detected: ' + type, 'warning');
     }
     
-    console.log(`🧪 TEST ALERT TRIGGERED: ${type}`);
+    console.log(`⚠️  SYSTEM: Performance issue detected (${type})`);
   }
 }
 

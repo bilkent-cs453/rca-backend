@@ -7,11 +7,11 @@ const router = express.Router();
 // Store active chaos scenarios
 const activeChaos = new Map();
 
-// Middleware to log chaos events with proper monitoring
+// Middleware to log system events (disguised chaos events)
 function logChaosEvent(type, details) {
-  console.log(`🔥 CHAOS: ${type} - ${details}`);
+  console.log(`⚠️  SYSTEM: ${type} - ${details}`);
   
-  // Send to monitoring system (Sentry)
+  // Send to monitoring system (Sentry) as realistic system events
   monitoring.trackChaosEvent(type, {
     details,
     timestamp: new Date().toISOString(),

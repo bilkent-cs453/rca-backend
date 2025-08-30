@@ -1,5 +1,6 @@
-// IMPORTANT: Import instrument.js at the very top
-require('./instrument');
+// IMPORTANT: Import instrumentation at the very top
+require('./instrument'); // Sentry instrumentation
+require('./datadog-instrument'); // Datadog instrumentation
 
 const express = require('express');
 const cors = require('cors');
@@ -19,6 +20,8 @@ const { connectDatabase } = require('./config/database');
 const { connectRedis } = require('./config/redis');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimit');
+const { datadogRequestTracking, datadogErrorTracking } = require('./middleware/datadog');
+const logger = require('./utils/logger');
 
 const app = express();
 const server = http.createServer(app);
@@ -29,6 +32,7 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan('combined'));
+app.use(datadogRequestTracking); // Add Datadog request tracking
 // Temporarily disabled for testing
 // app.use(rateLimiter);
 
@@ -58,6 +62,7 @@ app.get('/test-error', (req, res, next) => {
 // Error handling  
 // Setup Sentry error handler - must be after all controllers and before any other error middleware
 Sentry.setupExpressErrorHandler(app);
+app.use(datadogErrorTracking); // Add Datadog error tracking
 app.use(errorHandler);
 
 // Initialize WebSocket server
@@ -86,6 +91,17 @@ async function startServer() {
         console.log('Sentry error tracking enabled');
       } else {
         console.log('Sentry DSN not configured - using demo mode');
+      }
+      
+      // Log Datadog status
+      if (process.env.DD_API_KEY) {
+        logger.info('Datadog APM and monitoring enabled', {
+          service: process.env.DD_SERVICE || 'ecommerce-backend',
+          env: process.env.DD_ENV || process.env.NODE_ENV || 'development',
+          version: process.env.DD_VERSION || '1.0.0'
+        });
+      } else {
+        console.log('Datadog APM not configured - DD_API_KEY not found');
       }
     });
   } catch (error) {

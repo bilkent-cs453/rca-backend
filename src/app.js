@@ -30,17 +30,30 @@ const PORT = process.env.PORT || 3000;
 app.use(helmet());
 app.use(cors());
 app.use(express.json());
-app.use(morgan('combined'));
+
+// Custom morgan middleware that also sends to logger
+app.use(morgan('combined', {
+  stream: {
+    write: (message) => {
+      // Remove trailing newline
+      const log = message.trim();
+      // Send to both console and Datadog
+      logger.info(log);
+    }
+  }
+}));
 // Temporarily disabled for testing
 // app.use(rateLimiter);
 
 // Root route for health checks
 app.get('/', (req, res) => {
-  res.json({ 
+  const response = { 
     service: 'ecommerce-backend',
     status: 'running',
     timestamp: new Date().toISOString()
-  });
+  };
+  logger.info('Root endpoint accessed', { path: '/', method: 'GET' });
+  res.json(response);
 });
 
 // Routes
@@ -51,12 +64,14 @@ app.use('/api/users', userRoutes);
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ 
+  const health = { 
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
     memory: process.memoryUsage()
-  });
+  };
+  logger.info('Health check accessed', { path: '/health', ...health });
+  res.json(health);
 });
 
 // Test error endpoint

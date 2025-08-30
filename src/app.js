@@ -20,7 +20,6 @@ const { connectDatabase } = require('./config/database');
 const { connectRedis } = require('./config/redis');
 const errorHandler = require('./middleware/errorHandler');
 const rateLimiter = require('./middleware/rateLimit');
-const { datadogRequestTracking, datadogErrorTracking } = require('./middleware/datadog');
 const logger = require('./utils/logger');
 
 const app = express();
@@ -32,7 +31,6 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json());
 app.use(morgan('combined'));
-app.use(datadogRequestTracking); // Add Datadog request tracking
 // Temporarily disabled for testing
 // app.use(rateLimiter);
 
@@ -62,7 +60,6 @@ app.get('/test-error', (req, res, next) => {
 // Error handling  
 // Setup Sentry error handler - must be after all controllers and before any other error middleware
 Sentry.setupExpressErrorHandler(app);
-app.use(datadogErrorTracking); // Add Datadog error tracking
 app.use(errorHandler);
 
 // Initialize WebSocket server

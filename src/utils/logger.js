@@ -1,5 +1,16 @@
 const winston = require('winston');
 const { tracer } = require('../config/datadog');
+const DatadogHTTPTransport = require('./datadog-http-logger');
+
+// Initialize Datadog HTTP transport if API key is present
+let datadogTransport = null;
+if (process.env.DD_API_KEY) {
+  datadogTransport = new DatadogHTTPTransport(
+    process.env.DD_API_KEY,
+    process.env.DD_SITE || 'us5.datadoghq.com',
+    process.env.DD_SERVICE || 'ecommerce-backend'
+  );
+}
 
 // Create Winston logger with Datadog format
 const logger = winston.createLogger({
@@ -22,6 +33,12 @@ const logger = winston.createLogger({
           version: process.env.DD_VERSION || '1.0.0'
         };
       }
+      
+      // Send to Datadog HTTP transport if available
+      if (datadogTransport) {
+        datadogTransport.log(info.level, info.message, info);
+      }
+      
       return JSON.stringify(info);
     })
   ),

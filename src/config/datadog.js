@@ -30,6 +30,10 @@ function initializeDatadog() {
     // Sample rate (1.0 = 100% of traces)
     sampleRate: parseFloat(process.env.DD_TRACE_SAMPLE_RATE || '1.0'),
     
+    // Agentless mode - send directly to Datadog
+    url: process.env.DD_TRACE_AGENT_URL || 'https://trace.agent.datadoghq.com',
+    hostname: process.env.RENDER_SERVICE_NAME || 'render-service',
+    
     // Tags to add to all spans
     tags: {
       team: 'backend',

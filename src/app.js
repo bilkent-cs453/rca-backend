@@ -34,6 +34,15 @@ app.use(morgan('combined'));
 // Temporarily disabled for testing
 // app.use(rateLimiter);
 
+// Root route for health checks
+app.get('/', (req, res) => {
+  res.json({ 
+    service: 'ecommerce-backend',
+    status: 'running',
+    timestamp: new Date().toISOString()
+  });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
